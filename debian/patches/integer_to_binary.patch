@@ -1,0 +1,57 @@
+diff --git a/src/cowboy_clock.erl b/src/cowboy_clock.erl
+index 37767e1..2de3470 100644
+--- a/src/cowboy_clock.erl
++++ b/src/cowboy_clock.erl
+@@ -130,7 +130,7 @@ update_rfc1123(<< _:11/binary, Keep:6/binary, _/bits >>,
+ update_rfc1123(_, _, {Date = {Y, Mo, D}, {H, M, S}}) ->
+ 	Wday = calendar:day_of_the_week(Date),
+ 	<< (weekday(Wday))/binary, ", ", (pad_int(D))/binary, " ",
+-		(month(Mo))/binary, " ", (integer_to_binary(Y))/binary,
++		(month(Mo))/binary, " ", (list_to_binary(integer_to_list(Y)))/binary,
+ 		" ", (pad_int(H))/binary, $:, (pad_int(M))/binary,
+ 		$:, (pad_int(S))/binary, " GMT" >>.
+ 
+@@ -139,7 +139,7 @@ update_rfc1123(_, _, {Date = {Y, Mo, D}, {H, M, S}}) ->
+ pad_int(X) when X < 10 ->
+ 	<< $0, ($0 + X) >>;
+ pad_int(X) ->
+-	integer_to_binary(X).
++	list_to_binary(integer_to_list(X)).
+ 
+ -spec weekday(1..7) -> <<_:24>>.
+ weekday(1) -> <<"Mon">>;
+diff --git a/src/cowboy_req.erl b/src/cowboy_req.erl
+index 27c59cf..4ba805f 100644
+--- a/src/cowboy_req.erl
++++ b/src/cowboy_req.erl
+@@ -270,7 +270,7 @@ host_url(Req=#http_req{transport=Transport, host=Host, port=Port}) ->
+ 	PortBin = case {TransportName, Port} of
+ 		{ssl, 443} -> <<>>;
+ 		{tcp, 80} -> <<>>;
+-		_ -> << ":", (integer_to_binary(Port))/binary >>
++		_ -> << ":", (list_to_binary(integer_to_list(Port)))/binary >>
+ 	end,
+ 	{<< "http", Secure/binary, "://", Host/binary, PortBin/binary >>, Req}.
+ 
+@@ -625,7 +625,7 @@ body_decode(Req=#http_req{buffer=Data, body_state={stream, _,
+ body_decode_end(Req=#http_req{headers=Headers, p_headers=PHeaders},
+ 		TotalLength, Rest) ->
+ 	Headers2 = lists:keystore(<<"content-length">>, 1, Headers,
+-		{<<"content-length">>, integer_to_binary(TotalLength)}),
++		{<<"content-length">>, list_to_binary(integer_to_list(TotalLength))}),
+ 	%% At this point we just assume TEs were all decoded.
+ 	Headers3 = lists:keydelete(<<"transfer-encoding">>, 1, Headers2),
+ 	PHeaders2 = lists:keystore(<<"content-length">>, 1, PHeaders,
+diff --git a/src/cowboy_static.erl b/src/cowboy_static.erl
+index fae4568..94e02a8 100644
+--- a/src/cowboy_static.erl
++++ b/src/cowboy_static.erl
+@@ -264,7 +264,7 @@ generate_etag(Req, State={Path, {ok, #file_info{size=Size, mtime=Mtime}},
+ 	end.
+ 
+ generate_default_etag(Size, Mtime) ->
+-	{strong, integer_to_binary(erlang:phash2({Size, Mtime}, 16#ffffffff))}.
++	{strong, list_to_binary(integer_to_list(erlang:phash2({Size, Mtime}, 16#ffffffff)))}.
+ 
+ %% Return the time of last modification of the file.
+ 
